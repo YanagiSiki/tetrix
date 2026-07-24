@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TETRIX 3D — Anime Toon Edition</title>
+  <meta name="description" content="Sleek Japanese Anime Toon 3D Tetris game powered by Three.js and Vite. Accessible anywhere and deployable on Vercel.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@500;700;900&family=Outfit:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 3D Canvas Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- Clean Glassmorphic UI Overlay -->
+  <div id="ui-container">
+    <!-- Top HUD Header -->
+    <header class="hud-header glass-card">
+      <div class="brand">
+        <h1 class="logo">TETRIX <span class="accent-3d">3D</span></h1>
+        <span class="version-tag">ANIME TOON</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-box">
+          <span class="stat-label">SCORE // スコア</span>
+          <span id="score-val" class="stat-value">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">HIGH SCORE // ハイスコア</span>
+          <span id="high-score-val" class="stat-value highlight">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">LEVEL // レベル</span>
+          <span id="level-val" class="stat-value">1</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">LINES // ライン</span>
+          <span id="lines-val" class="stat-value">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Left Panel: Hold & Quick Actions -->
+    <aside class="panel-left">
+      <div class="glass-panel hold-panel">
+        <div class="panel-header">HOLD // ホールド</div>
+        <div class="preview-box">
+          <canvas id="hold-canvas" width="120" height="120"></canvas>
+        </div>
+        <span class="hint-text">[C] / [Shift] KEY</span>
+      </div>
+
+      <div class="glass-panel quick-controls">
+        <button id="btn-audio" class="icon-btn" title="Toggle Sound (M)">
+          <span class="icon">🔊</span> <span class="btn-text">SOUND: ON</span>
+        </button>
+        <button id="btn-camera" class="icon-btn" title="Reset View (R)">
+          <span class="icon">🎥</span> <span class="btn-text">RESET VIEW</span>
+        </button>
+        <button id="btn-debug" class="icon-btn" title="Toggle Wireframe Debug (D)">
+          <span class="icon">🛠️</span> <span class="btn-text">WIREFRAME</span>
+        </button>
+        <button id="btn-pause" class="icon-btn" title="Pause Game (P)">
+          <span class="icon">⏸️</span> <span class="btn-text">PAUSE</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Panel: Next & Controls Guide -->
+    <aside class="panel-right">
+      <div class="glass-panel next-panel">
+        <div class="panel-header">NEXT // つぎ</div>
+        <div class="preview-box">
+          <canvas id="next-canvas" width="120" height="120"></canvas>
+        </div>
+      </div>
+
+      <div class="glass-panel guide-panel">
+        <div class="panel-header">TACTICAL // 操作指南</div>
+        <ul class="control-list">
+          <li><kbd>W</kbd><kbd>S</kbd><kbd>A</kbd><kbd>D</kbd> Move XY</li>
+          <li><kbd>Q</kbd><kbd>E</kbd> Move Depth (Z)</li>
+          <li><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> Rotate 3D</li>
+          <li><kbd>Space</kbd> Hard Drop</li>
+          <li><kbd>Shift</kbd> / <kbd>C</kbd> Hold Piece</li>
+          <li><kbd>Right Drag</kbd> Orbit Cam</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Mobile Touch Controls -->
+    <div id="touch-controls" class="mobile-only glass-card">
+      <div class="touch-row">
+        <button id="touch-move-left" class="touch-btn">◀</button>
+        <button id="touch-move-up" class="touch-btn">▲</button>
+        <button id="touch-move-down" class="touch-btn">▼</button>
+        <button id="touch-move-right" class="touch-btn">▶</button>
+      </div>
+      <div class="touch-row">
+        <button id="touch-rot-x" class="touch-btn accent">Rot X</button>
+        <button id="touch-rot-y" class="touch-btn accent">Rot Y</button>
+        <button id="touch-rot-z" class="touch-btn accent">Rot Z</button>
+        <button id="touch-drop" class="touch-btn warn">DROP</button>
+      </div>
+    </div>
+
+    <!-- Pause & Game Over Modal -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+      <div class="glass-modal">
+        <h2 id="modal-title" class="modal-title">GAME PAUSED</h2>
+        <div id="modal-body" class="modal-body">
+          <p class="modal-msg">Take a breather! Ready to resume?</p>
+          <div class="final-stats hidden" id="final-stats">
+            <div class="final-stat-item">
+              <span>FINAL SCORE</span>
+              <strong id="final-score">0</strong>
+            </div>
+            <div class="final-stat-item">
+              <span>CLEARED LINES</span>
+              <strong id="final-lines">0</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="modal-primary-btn" class="btn-primary">RESUME</button>
+          <button id="modal-restart-btn" class="btn-secondary">RESTART</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance & Debug Overlay -->
+    <div id="debug-overlay" class="debug-hud hidden">
+      <span>FPS: <strong id="fps-val">60</strong></span>
+      <span>DEBUG: <strong id="debug-state">OFF</strong></span>
+      <span>GRID: 6×6×15</span>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
